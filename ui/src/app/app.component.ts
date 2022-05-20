@@ -1,43 +1,42 @@
+import { HttpClient, HttpEvent, HttpEventType, HttpHeaders } from '@angular/common/http';
 import { Component, VERSION, ViewChild, ElementRef } from '@angular/core';
-
+import { finalize, Observable, Subscription } from 'rxjs';
+import { TurNLPValidateResponse } from './model/nlp-validate.model';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: [ './app.component.scss' ]
+  styleUrls: ['./app.component.scss']
 })
-export class AppComponent  {
-  name = 'Angular ' + VERSION.major;
-  dataimage:any;
+export class AppComponent {
+  public json!: Observable<TurNLPValidateResponse>;
 
-   @ViewChild('fileInput')
+  constructor(private httpClient: HttpClient) { }
+  name = 'Angular ' + VERSION.major;
+  dataimage: any;
+
+  @ViewChild('fileInput')
   fileInput!: ElementRef;
   fileAttr = 'Choose File';
+  fileName!: string;
+  uploadProgress!: number;
+  uploadSub!: Subscription;
+  getResponse(file: File): Observable<any> {
+    if (file) {
+      this.fileName = file.name;
 
+      const formData = new FormData();
 
-  uploadFileEvt(imgFile: any) {
-    if (imgFile.target.files && imgFile.target.files[0]) {
-      this.fileAttr = '';
-      Array.from(imgFile.target.files).forEach((file: any) => {
-        this.fileAttr += file.name ;
+      formData.append("file", file);
+      return this.httpClient.post<any>("http://localhost:2700/api/nlp/6f6a2468-95b8-419e-bf4a-ac21cca0e5c2/validate/document",
+        formData, {
+        headers: new HttpHeaders({
+          'Authorization': 'Basic ' + btoa("admin:admin")
+        })
       });
-
-      // HTML5 FileReader API
-      let reader = new FileReader();
-      reader.onload = (e: any) => {
-        let image = new Image();
-        image.src = e.target.result;
-        image.onload = rs => {
-          let imgBase64Path = e.target.result;
-          console.log(imgBase64Path);
-          this.dataimage = imgBase64Path;
-        };
-      };
-      reader.readAsDataURL(imgFile.target.files[0]);
-
-      // Reset if duplicate image uploaded again
-      this.fileInput.nativeElement.value = "";
-    } else {
-      this.fileAttr = 'Choose File';
     }
+    return new Observable<TurNLPValidateResponse>();
+  }
+  onFileSelected(event: any) {
+    this.json = this.getResponse(event.target.files[0]);
   }
 }
